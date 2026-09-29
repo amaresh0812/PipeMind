@@ -1,0 +1,19 @@
+# .gitignore
+# Ignore environment variable files
+.env
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+
+# Virtual environment directories
+venv/
+.envrc
+
+# IDE/editor specific files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db

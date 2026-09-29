@@ -1,0 +1,362 @@
+[
+  {
+    "pipeline": "orders_daily_load",
+    "tech": "Airflow, PySpark",
+    "date": "2026-01-12",
+    "error": "org.apache.spark.sql.AnalysisException: cannot resolve '`cust_id`' given input columns: [customer_id, tax_id, discount_pct]",
+    "cause": "ERP system renamed column 'customer_id' to 'cust_id' at month end without updating schema mapping.",
+    "resolution": "Updated the PySpark schema definition and Airflow DAG to map 'cust_id' to the expected field and redeployed the DAG.",
+    "worked": true
+  },
+  {
+    "pipeline": "orders_daily_load",
+    "tech": "Airflow, PySpark",
+    "date": "2026-01-28",
+    "error": "org.apache.spark.sql.AnalysisException: cannot resolve '`discount_pct`' given input columns: [cust_id, tax_id, discount]",
+    "cause": "ERP added a new column 'discount' and deprecated 'discount_pct' after month\u2011end schema change.",
+    "resolution": "Added conditional logic to handle both column names and backfilled missing values with 0.0.",
+    "worked": true
+  },
+  {
+    "pipeline": "orders_daily_load",
+    "tech": "Airflow, PySpark",
+    "date": "2026-02-14",
+    "error": "Py4JJavaError: An error occurred while calling o31.showString. : org.apache.spark.sql.AnalysisException: cannot resolve '`tax_id`' given input columns: [cust_id, discount_pct]",
+    "cause": "ERP removed 'tax_id' column for February month\u2011end due to tax regulation change.",
+    "resolution": "Modified the transformation to treat missing 'tax_id' as NULL and added a schema evolution flag.",
+    "worked": true
+  },
+  {
+    "pipeline": "orders_daily_load",
+    "tech": "Airflow, PySpark",
+    "date": "2026-02-27",
+    "error": "org.apache.spark.sql.AnalysisException: cannot resolve '`cust_id`' given input columns: [customer_id, tax_id, discount_pct]",
+    "cause": "Rollback of ERP column rename caused a mix of old and new column names in the same export file.",
+    "resolution": "Implemented a schema detection step that selects whichever column exists and logs a warning.",
+    "worked": true
+  },
+  {
+    "pipeline": "orders_daily_load",
+    "tech": "Airflow, PySpark",
+    "date": "2026-03-10",
+    "error": "org.apache.spark.sql.AnalysisException: cannot resolve '`discount_pct`' given input columns: [cust_id, tax_id, discount]",
+    "cause": "ERP introduced 'discount' column but left 'discount_pct' in legacy reports, causing duplicate columns.",
+    "resolution": "Dropped duplicate column during ingestion and added a mapping table for future changes.",
+    "worked": true
+  },
+  {
+    "pipeline": "orders_daily_load",
+    "tech": "Airflow, PySpark",
+    "date": "2026-04-05",
+    "error": "org.apache.spark.sql.AnalysisException: cannot resolve '`tax_id`' given input columns: [cust_id, discount_pct]",
+    "cause": "Month\u2011end data extract omitted 'tax_id' due to a mis\u2011configured ERP export filter.",
+    "resolution": "Contacted ERP team, fixed the export filter, and added a validation step to abort if required columns are missing.",
+    "worked": false
+  },
+  {
+    "pipeline": "orders_daily_load",
+    "tech": "Airflow, PySpark",
+    "date": "2026-05-22",
+    "error": "org.apache.spark.sql.AnalysisException: cannot resolve '`cust_id`' given input columns: [customer_id, tax_id, discount_pct]",
+    "cause": "ERP performed a second rename of 'customer_id' to 'cust_id' after a failed rollout, leaving some files with old name.",
+    "resolution": "Added a pre\u2011load schema reconciliation script that renames columns dynamically; re\u2011ran the failed load.",
+    "worked": true
+  },
+  {
+    "pipeline": "sales_agg_hourly",
+    "tech": "Azure Data Factory",
+    "date": "2026-01-07",
+    "error": "ActivityTimeout: The activity execution exceeded the timeout of 7200 seconds.",
+    "cause": "Synapse SQL pool DW100c was paused for maintenance during the hourly aggregation window.",
+    "resolution": "Unpaused the pool, increased the activity timeout to 10800 seconds, and added a pre\u2011check to resume the pool if paused.",
+    "worked": true
+  },
+  {
+    "pipeline": "sales_agg_hourly",
+    "tech": "Azure Data Factory",
+    "date": "2026-01-21",
+    "error": "ActivityTimeout: The activity execution exceeded the timeout of 7200 seconds.",
+    "cause": "DW100c auto\u2011scaled down to 2 DWUs due to low usage, insufficient for the month\u2011end spike.",
+    "resolution": "Manually scaled the pool to 8 DWUs for the peak period and configured a schedule\u2011based scaling policy.",
+    "worked": true
+  },
+  {
+    "pipeline": "sales_agg_hourly",
+    "tech": "Azure Data Factory",
+    "date": "2026-02-11",
+    "error": "ActivityTimeout: The activity execution exceeded the timeout of 7200 seconds.",
+    "cause": "Synapse pool was inadvertently set to 'Paused' by a DevOps script after a weekend deployment.",
+    "resolution": "Removed the pause command from the deployment script and added a guard clause to check pool state before pausing.",
+    "worked": true
+  },
+  {
+    "pipeline": "sales_agg_hourly",
+    "tech": "Azure Data Factory",
+    "date": "2026-02-26",
+    "error": "ActivityTimeout: The activity execution exceeded the timeout of 7200 seconds.",
+    "cause": "DW100c hit a resource throttling limit because concurrent loads from another pipeline saturated the pool.",
+    "resolution": "Implemented concurrency limits and staggered the start times of overlapping pipelines.",
+    "worked": false
+  },
+  {
+    "pipeline": "sales_agg_hourly",
+    "tech": "Azure Data Factory",
+    "date": "2026-03-15",
+    "error": "ActivityTimeout: The activity execution exceeded the timeout of 7200 seconds.",
+    "cause": "Synapse pool auto\u2011pause setting was set to 5 minutes, causing it to pause mid\u2011run during low\u2011traffic hours.",
+    "resolution": "Adjusted auto\u2011pause idle time to 30 minutes and added a retry policy with exponential backoff.",
+    "worked": true
+  },
+  {
+    "pipeline": "sales_agg_hourly",
+    "tech": "Azure Data Factory",
+    "date": "2026-04-03",
+    "error": "ActivityTimeout: The activity execution exceeded the timeout of 7200 seconds.",
+    "cause": "DW100c was under\u2011scaled (DW100c) while a new sales channel added 3x more rows to the source.",
+    "resolution": "Upgraded the pool to DW200c for the month\u2011end period and updated the ADF pipeline to use the new compute size.",
+    "worked": true
+  },
+  {
+    "pipeline": "sales_agg_hourly",
+    "tech": "Azure Data Factory",
+    "date": "2026-04-19",
+    "error": "ActivityTimeout: The activity execution exceeded the timeout of 7200 seconds.",
+    "cause": "Synapse pool entered a 'paused' state after a failed health check and did not auto\u2011resume.",
+    "resolution": "Created an Azure Function to monitor pool health and trigger resume; manually resumed the pool for the failed run.",
+    "worked": false
+  },
+  {
+    "pipeline": "sales_agg_hourly",
+    "tech": "Azure Data Factory",
+    "date": "2026-05-08",
+    "error": "ActivityTimeout: The activity execution exceeded the timeout of 7200 seconds.",
+    "cause": "DW100c was throttled due to a concurrent large data movement job from ADLS to Synapse.",
+    "resolution": "Scheduled the data movement job outside the aggregation window and increased the timeout to 14400 seconds.",
+    "worked": true
+  },
+  {
+    "pipeline": "customer_dim_refresh",
+    "tech": "Airflow",
+    "date": "2026-01-09",
+    "error": "NullRateException: Null rate for column 'email' is 12.4% (threshold 5%).",
+    "cause": "CRM export file was truncated at 75% of rows due to a network timeout.",
+    "resolution": "Added a file size checksum validation step; re\u2011requested the full export and re\u2011ran the DAG.",
+    "worked": true
+  },
+  {
+    "pipeline": "customer_dim_refresh",
+    "tech": "Airflow",
+    "date": "2026-01-27",
+    "error": "NullRateException: Null rate for column 'email' is 8.9% (threshold 5%).",
+    "cause": "Mid\u2011file truncation caused by CRM batch job hitting a memory limit and aborting.",
+    "resolution": "Increased CRM batch memory allocation and added a retry mechanism in the DAG to fetch missing rows.",
+    "worked": false
+  },
+  {
+    "pipeline": "customer_dim_refresh",
+    "tech": "Airflow",
+    "date": "2026-02-13",
+    "error": "NullRateException: Null rate for column 'email' is 6.3% (threshold 5%).",
+    "cause": "CRM export process was interrupted by a scheduled backup, resulting in incomplete file.",
+    "resolution": "Rescheduled the backup window, implemented a file\u2011completion flag, and re\u2011executed the refresh.",
+    "worked": true
+  },
+  {
+    "pipeline": "customer_dim_refresh",
+    "tech": "Airflow",
+    "date": "2026-02-28",
+    "error": "NullRateException: Null rate for column 'email' is 9.1% (threshold 5%).",
+    "cause": "Network glitch caused the SFTP transfer to stop after 60% of the file was received.",
+    "resolution": "Switched to Azure Blob storage with built\u2011in retry; re\u2011ingested the corrected file.",
+    "worked": false
+  },
+  {
+    "pipeline": "customer_dim_refresh",
+    "tech": "Airflow",
+    "date": "2026-03-19",
+    "error": "NullRateException: Null rate for column 'email' is 5.7% (threshold 5%).",
+    "cause": "CRM system applied a new filter that excluded rows with missing email, but the export still contained placeholder rows with nulls.",
+    "resolution": "Updated the export query to exclude placeholder rows and added a post\u2011load de\u2011duplication step.",
+    "worked": true
+  },
+  {
+    "pipeline": "customer_dim_refresh",
+    "tech": "Airflow",
+    "date": "2026-04-02",
+    "error": "NullRateException: Null rate for column 'email' is 11.0% (threshold 5%).",
+    "cause": "File was truncated because the CRM job hit a 2\u202fGB file size limit.",
+    "resolution": "Requested split exports (daily chunks) from CRM and modified the DAG to concatenate them; re\u2011ran the load.",
+    "worked": false
+  },
+  {
+    "pipeline": "customer_dim_refresh",
+    "tech": "Airflow",
+    "date": "2026-04-27",
+    "error": "NullRateException: Null rate for column 'email' is 7.4% (threshold 5%).",
+    "cause": "Temporary outage of the CRM API caused the export to fallback to a cached partial dataset.",
+    "resolution": "Implemented API health check before export; after service restoration, fetched the full dataset and re\u2011processed.",
+    "worked": true
+  },
+  {
+    "pipeline": "customer_dim_refresh",
+    "tech": "Airflow",
+    "date": "2026-05-14",
+    "error": "NullRateException: Null rate for column 'email' is 13.2% (threshold 5%).",
+    "cause": "CRM nightly job was killed by a database deadlock, leaving the export file incomplete.",
+    "resolution": "Added deadlock monitoring and increased lock timeout; manually regenerated the export and re\u2011executed the DAG.",
+    "worked": false
+  },
+  {
+    "pipeline": "customer_dim_refresh",
+    "tech": "Airflow",
+    "date": "2026-05-28",
+    "error": "NullRateException: Null rate for column 'email' is 5.2% (threshold 5%).",
+    "cause": "A recent schema change introduced a new optional 'email' field; older rows lacked values.",
+    "resolution": "Backfilled missing emails with placeholder values and updated downstream validation to accept up to 5% nulls.",
+    "worked": true
+  },
+  {
+    "pipeline": "dbt_finance_marts",
+    "tech": "dbt, Snowflake",
+    "date": "2026-06-03",
+    "error": "CompilationError: column \"accounting_period\" does not exist",
+    "cause": "Month-end schema drift: new column added to source view without updating dbt model",
+    "resolution": "Added missing column to model schema and recompiled dbt project",
+    "worked": true
+  },
+  {
+    "pipeline": "dbt_finance_marts",
+    "tech": "dbt, Snowflake",
+    "date": "2026-06-15",
+    "error": "UniqueConstraintViolation: duplicate key value violates unique constraint \"pk_financial_transactions\"",
+    "cause": "Duplicate primary keys generated by a faulty incremental load on 2026-06-14",
+    "resolution": "Implemented deduplication CTE and added a pre\u2011run check for duplicate IDs",
+    "worked": true
+  },
+  {
+    "pipeline": "dbt_finance_marts",
+    "tech": "dbt, Snowflake",
+    "date": "2026-07-02",
+    "error": "DatabaseError: SQL compilation error: column \"tax_code\" not found",
+    "cause": "Missing column after upstream ETL removed tax_code during a data source migration",
+    "resolution": "Restored tax_code column in source view and added a test for column existence",
+    "worked": true
+  },
+  {
+    "pipeline": "dbt_finance_marts",
+    "tech": "dbt, Snowflake",
+    "date": "2026-07-19",
+    "error": "RuntimeError: dbt failed while materializing model finance_monthly_balance",
+    "cause": "Schema drift caused a NULL in a NOT NULL column \"balance_date\"",
+    "resolution": "Added default value logic and updated source to always populate balance_date",
+    "worked": false
+  },
+  {
+    "pipeline": "dbt_finance_marts",
+    "tech": "dbt, Snowflake",
+    "date": "2026-08-05",
+    "error": "CompilationError: Unexpected token 'AS' near line 12",
+    "cause": "Manual edit introduced a syntax error while fixing duplicate key issue",
+    "resolution": "Reverted model file to previous version from git and added linting step",
+    "worked": true
+  },
+  {
+    "pipeline": "dbt_finance_marts",
+    "tech": "dbt, Snowflake",
+    "date": "2026-08-22",
+    "error": "DatabaseError: Snowflake error: Table 'FINANCE_JOURNAL' does not exist or not authorized",
+    "cause": "Month-end process attempted to reference a temporary table that was dropped early",
+    "resolution": "Adjusted run order to create temp table earlier and added dependency declaration",
+    "worked": false
+  },
+  {
+    "pipeline": "dbt_finance_marts",
+    "tech": "dbt, Snowflake",
+    "date": "2026-09-11",
+    "error": "UniqueConstraintViolation: duplicate key value violates unique constraint \"pk_account_balances\"",
+    "cause": "Duplicate keys introduced after a failed retry of the incremental load",
+    "resolution": "Implemented idempotent upsert logic using MERGE and added retry back\u2011off",
+    "worked": true
+  },
+  {
+    "pipeline": "inventory_snapshot_sync",
+    "tech": "Azure Data Factory",
+    "date": "2026-06-04",
+    "error": "ActivityFailed: Synapse SQL pool 'inventory_dw' is paused",
+    "cause": "Automated cost\u2011saving policy paused the pool during off\u2011peak hours",
+    "resolution": "Added a pre\u2011activity script to resume the pool and updated policy to exclude month\u2011end runs",
+    "worked": true
+  },
+  {
+    "pipeline": "inventory_snapshot_sync",
+    "tech": "Azure Data Factory",
+    "date": "2026-06-18",
+    "error": "FileLeaseConflict: Unable to acquire lease on ADLS Gen2 file '/snapshots/inventory_20260618.parquet'",
+    "cause": "Previous pipeline run crashed and left a lease dangling",
+    "resolution": "Implemented lease timeout handling and added cleanup step in finally block",
+    "worked": true
+  },
+  {
+    "pipeline": "inventory_snapshot_sync",
+    "tech": "Azure Data Factory",
+    "date": "2026-07-07",
+    "error": "ActivityFailed: Copy activity failed with error 'File not found: /snapshots/inventory_20260707.parquet'",
+    "cause": "Source system failed to generate the nightly export due to a downstream API outage",
+    "resolution": "Added retry logic for source export and alerting on missing files",
+    "worked": false
+  },
+  {
+    "pipeline": "inventory_snapshot_sync",
+    "tech": "Azure Data Factory",
+    "date": "2026-07-23",
+    "error": "ActivityFailed: Synapse SQL pool 'inventory_dw' is paused",
+    "cause": "Manual pause by a data engineer during maintenance window overlapping the schedule",
+    "resolution": "Communicated schedule changes to the team and locked the pool state during pipeline runs",
+    "worked": true
+  },
+  {
+    "pipeline": "inventory_snapshot_sync",
+    "tech": "Azure Data Factory",
+    "date": "2026-08-02",
+    "error": "FileLeaseConflict: Lease acquisition timeout on '/snapshots/inventory_20260802.parquet'",
+    "cause": "Concurrent copy activity from another pipeline held the lease too long",
+    "resolution": "Serialized access to the same file using a control table and reduced lease duration",
+    "worked": false
+  },
+  {
+    "pipeline": "inventory_snapshot_sync",
+    "tech": "Azure Data Factory",
+    "date": "2026-08-19",
+    "error": "ActivityFailed: Copy activity failed with error 'AccessDenied: Permission to write to ADLS Gen2 path denied'",
+    "cause": "Service principal token expired after 90 days without renewal",
+    "resolution": "Rotated the service principal secret and updated the linked service credentials",
+    "worked": true
+  },
+  {
+    "pipeline": "inventory_snapshot_sync",
+    "tech": "Azure Data Factory",
+    "date": "2026-09-05",
+    "error": "ActivityFailed: Synapse SQL pool 'inventory_dw' is paused",
+    "cause": "Auto\u2011scale policy mistakenly scaled pool to zero nodes during peak load",
+    "resolution": "Adjusted auto\u2011scale thresholds and added a safeguard to prevent pause during active pipelines",
+    "worked": false
+  },
+  {
+    "pipeline": "inventory_snapshot_sync",
+    "tech": "Azure Data Factory",
+    "date": "2026-09-14",
+    "error": "FileLeaseConflict: Unable to acquire lease on '/snapshots/inventory_20260914.parquet' after 5 attempts",
+    "cause": "Long\u2011running upstream transformation left the file open",
+    "resolution": "Added explicit file close operation and reduced transformation runtime",
+    "worked": true
+  },
+  {
+    "pipeline": "marketing_attribution_model",
+    "tech": "dbt",
+    "date": "2026-06-06",
+    "error": "CompilationError: column \"utm_source\" does not exist in source \"crm_exports\"",
+    "cause": "CRM export truncated columns after a schema change in the source system",
+    "resolution": "Updated source definition in dbt and added a test for required tracking columns",
+    "worked": true
+  }
+]
